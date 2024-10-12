@@ -319,7 +319,6 @@ P_m &= w_1 G_{m,1} + \dots + w_n G_{m,n} \}
 *** [[https://github.com/novifinancial/fastpay/pull/25][zef PR]] on [[https://github.com/novifinancial/fastpay/][fastpay repo]]
 *** [[https://arxiv.org/pdf/2405.18072][Asynchronous BFT Asset Transfer: Quasi-Anonymous, Light, and Consensus-Free]]
 * Ring Signatures
-** yeah the talk title...
 ** Anonymous credentials rely on an issuer
 *** ring signatures explicitly refer to the 1-of-n set
 **** larger proofs
