@@ -221,8 +221,8 @@ P_m &= w_1 G_{m,1} + \dots + w_n G_{m,n} \}
 * Generalizing Schnorr Identification
 ** Disjunctions? Yes!
 *** $\{ (x; P, Q) : P = xG \vee Q = xG \}$
-*** "witness indistinguishable", 1-of-n proofs
-*** Abe or Cramer-Damgard ring signatures
+*** "witness hiding", 1-of-n proofs
+*** e.g. [[https://www.iacr.org/archive/asiacrypt2002/25010414/25010414.pdf][Abe-Ohkubo-Suzuki]] or [[https://core.ac.uk/download/pdf/301654076.pdf][Cramer-Damgard-Schoenmakers]] ring signatures
 **** simulate for $n-1$ of the statements
 **** one of the statements can't be simulated, verifier doesn't know which
 ** Prove a commitment is a bit commitment? Yes!
