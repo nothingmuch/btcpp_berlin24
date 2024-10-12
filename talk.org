@@ -1,0 +1,473 @@
+#+title: Blind Signatures and Anonymous Credentials
+
+* Hello
+** {{,@not_}nothingmuch,Yuval}
+** (still) working on CoinJoin
+*** anonymity metrics
+*** mechanism design & protocol
+*** at Spiral
+** Previously involved with WabiSabi
+* What this talk is about
+** David Chaum [[https://bitcoin-class.org/readings/Chaum-blind-signatures.PDF][introduced]] e-cash in 1982
+** a *lot* of new ideas published since
+** brief, superficial overview
+* What this talk is about
+** design space for e-cash implementation
+** some building blocks and their properties
+* Physical Bearer Tokens
+** Alice gives Bob the banker one "unit"
+** Bob gives Alice a note
+*** says "redeemable for one unit --Bob"
+*** assumed to be unforgeable
+** Bob will give back a unit in exchange for a note
+** Anyone who trusts Bob can accept notes as payment
+* Digital Bearer Token
+** Alice receives a jpg of a ticket
+** Alice makes as many copies as she likes
+** Bob has a bad day at work
+* Chaumian e-cash: Issuance
+** Bob generates a public key, and makes it known
+** Alice deposits one unit along with a blind signature request
+*** The blinded message is Alice's "nullifier"
+**** aka "serial number", in some contexts "key image"
+** Bob signs the blinded message for Alice
+** Alice unblinds, and now has a token
+*** Alice can authenticate the token by verifying the signature against Bob's key
+* Chaumian e-cash: Redemption
+** Alice spends the token by showing Bob the unblinded signature
+*** Anonymous: the unblinded signature and message are unlinkable to the blind signature request
+** Bob gives back a unit
+*** a valid token is a fresh nullifier with a valid signature on it
+*** previously seen nullifiers have already been spent
+* Chaumian e-cash: Practical challenges
+** /online/ e-cash transfers require Bob as a 3rd party
+*** otherwise receiver trusts sender not to double spend when given a copy
+*** reissuance means spending a token to get a token
+** nullifier set grows without bounds
+*** Keys must be rotated and all tokens reissued (or expired) to prune nullifier set
+** one "unit" not practical for large values
+** one key per denomination also poses issues
+*** how to distribute balance between denominations?
+*** unlinkability proofs for a single signature in isolation... but how unlinkable are batches?
+* Blind Signature Limitations
+** communication channel from the issuer to itself
+** the payload is *not* the signed message
+*** the issuer has no control over this
+*** rather it's communicating the fact that a signature was given
+*** i.e. that this token corresponds to a deposit
+** payload is a unit typed
+*** the unit type is inhabited by only one possible value
+*** aka ~()~, ~struct {}~, ~void~, etc
+* Digital Credentials
+** Chaum also [[https://moglen.law.columbia.edu/LIS/archive/dataright/chaum-achievingelectronicprivacy.pdf][described]] "digital credentials" in 1992
+** Blind signature on a *meaningful* message
+*** "citizen of country X"
+*** "eligible to vote"
+*** "has a foo-tier subscription (valid until ...)"
+** A trusted 3rd party peeks at the message
+*** Trusted by Bob to verify message contents
+*** Trusted by Alice not to reveal it to Bob
+** "this note is worth x units"...
+*** insufficient for privacy if message revealed
+* Anonymous Credentials
+** [[https://www.credentica.com/the_mit_pressbook.html][PhD thesis]] of Stefan Brands, 2000
+*** "Restrictive blind issuing protocols"
+*** "Showing protocols with selective disclosures
+** Key idea: use ZK
+*** see also [[https://cs.brown.edu/research/pubs/pdfs/2002/Camenisch-2002-SSE.pdf][Camenisch-Lysyanskaya]], [[https://eprint.iacr.org/2015/525.pdf][Pointcheval-Sanders]]
+* Schnorr Blind Signatures
+** Raise your hand if you understand Schnorr signatures (not blind)
+* Schnorr Blind Signatures
+** ... are [[https://eprint.iacr.org/2020/945.pdf][broken by Wagner & ROS attacks]]
+*** details redacted, but it's just more blinding terms
+*** RSA and BLS blind signatures don't have this problem
+**** blind BLS also supports threshold signing, as in Fedimint
+** incidentally, [[https://eprint.iacr.org/2022/1676.pdf][predicate blind signatures]] fix ROS attack
+*** these days ZK proofs on preimage of e.g. SHA-256 are much more practical
+*** but still today this is very heavy machinery
+* Hiding Denominations
+** [[https://bitcointalk.org/index.php?topic=305791.0][bitcoins with homomorphic value]], Adam Back, 2013
+*** Basis for Confidential Transactions
+*** also ~credlib~, implemented Brands credentials
+** additively homomorphic: $f(a) + f(b) = f(a + b)$
+** $f$ is e.g. Pedersen Commitment scheme
+*** in this case, $f$ also hides the values, which is what we want
+* Groups Refresher
+** A set $\mathbb{G}$ and a binary operation $+ : \mathbb{G}^{2} \rightarrow \mathbb{G}$
+** Closure: $\forall A, B \in \mathbb{G}: A + B \in \mathbb{G}$
+** Identity: $\exists O \in \mathbb{G}: \forall G \in \mathbb{G}: G + O = G$
+** Inverses: $\forall A \in \mathbb{G}: \exists B \in \mathbb{G}: A + B = O$
+** Associativity: $\forall A, B, C \in \mathbb{G}:  (A + B) + C = A + (B + C)$
+* Abelian Groups of Prime Order
+** Abelian/commutative: $\forall A, B \in \mathbb{G}: A + B = B + A$
+** $kG$ denotes repeated addition ($k \in \mathbb{Z}$)
+*** e.g. $2G$ means $G + G$
+*** if $k = 0$ then $kG = O$
+*** if $k < 0$ then $kG = (-k)(-G)$
+** Prime order $p = |\mathbb{G}|$: no subgroups
+** Cyclic: $\exists G \in \mathbb{G}: \mathbb{G} = \{ kG \mid k \in \mathbb{Z} \}$
+*** usually written $\mathbb{G} = \langle G \rangle$
+*** when the order is prime $\forall G \in \mathbb{G} \setminus \{O\}$
+* Groups with hard DL
+** Given $P = kG$ where $P \neq O$, computing $k$ is hard
+*** "discrete log" makes more sense in multiplicative notation
+** Best known algorithm requires $\sqrt{|\mathbb{G}|}$ time
+** Our favorite: ~secp256k1~
+*** Abelian, prime order
+* Pedersen Hashing
+** Given some generator $G \in \mathbb{G}$
+*** e.g. the standard one used for ECDSA signatures
+** $h_G(a) \mathrel{\mathop:}= aG$
+** $h_G : \mathbb{Z}_{p} \rightarrow \mathbb{G}$
+** basically the same as as deriving a public key
+* Pedersen Commitments
+** Given $G, H \in \mathbb{G}$
+*** No one knows a $k$ s.t. $H = kG$ or $G = kH$
+*** such generators are usually obtained by hash-to-curve
+*** aka NUMS points ("nothing up my sleeve")
+** To commit to $m$, pick a random blinding term \(r \overset{\$}{\leftarrow} \mathbb{Z}_{p}\)
+*** this hides $m$ even if guessable
+** $Com(m, r) \mathrel{\mathop:}= mG + rH$
+** $r$ makes these commitments /information theoretically/ hiding
+*** $\forall (C, m) \in \mathbb{G} \times \mathbb{Z}_{p}:$
+*** $\exists r \in \mathbb{Z}_{p}: Com(m, r) = C$
+*** For the same reason the scheme is only computationally binding
+** to "open" a commitment reveal the preimage $(m, r)$
+*** but in our setting, typically this isn't done
+* Confidential Transactions: Value Commitments
+** blinding terms \( r_1, r_2 \overset{\$}{\leftarrow} \mathbb{Z}_{p} \)
+** numerical values $v_1, v_2 \in \mathbb{Z}_{p}$
+** Suppose $v_1$ and $v_2$ represent the value of a spent input and created output respectively
+* Confidential Transactions: Balance Proofs
+** homomorphism: $( v_1G \oplus r_1H ) \oplus -(v_2G \oplus r_2H) = (v_1 - v_2)G \oplus (r_1 - r_2)H$
+** if $v_1 = v_2$, the $G$ terms cancel out: $(r_1 - r_2)H$
+** proving $C$ is a commitment to 0 is like signing with $C$ as a public key
+*** if $H$ is the standard generator used for signatures, it's literally the same
+*** if the value is not 0 but some $v'$ known to the verifier, sign with $C' = (C - v'G)$
+** $v$ must also sufficiently small and "positive"
+*** (i.e. not congruent to a negative integer)
+* Sigma Protocols
+** Raise your hand if you understand any kind of ZK
+* Sigma Protocols
+** Raise your hand if you didn't raise your hand just now, but did when I asked about Schnorr
+* Sigma Protocols: Schnorr Identification Protocol
+** Setup
+*** Prover knows a secret $x \in \mathbb{Z}_{p}$
+*** Publishes $P = xG$
+** Prove knowledge of $x$
+*** Prover samples nonce \(k \overset{\$}{\leftarrow} \mathbb{Z}_{p}\)
+*** Send commitment $R = kG$ to verifier
+*** Verifier samples challenge \(c \overset{\$}{\leftarrow} \mathbb{Z}_{p}\), sends to prover
+*** Prover responds with $s = k - cx$
+*** Verifier checks $sG \overset{?}{=} R - cP$
+**** $(k - cx)G = kG - cxG = R - cP$
+** $(R, c, s)$ is the /transcript/
+*** An /accepting/ transcript satisfies the verification equation
+* Schnorr Identification is a Sigma Protocols
+** for given $P = xG$:
+** Special Soundness
+*** This makes sigma protocols *proofs* of *knowledge*
+*** the witness $x$ can be extracted if nonces are reused
+*** if you are given $(R, c, s)$, $(R, c', s')$ where $c != c'$
+*** $s - s' = (k - cx) - (k - c'x) = (k - k) + (c' - c)x$
+*** then you can compute $x = \frac{s - s'}{c' - c}$
+*** since the prover leaked $x$ to you, they the prover must have known it
+** Honest Verifier Zero Knowledge
+*** anyone can simulate a transcript
+**** sample \(s, c \overset{\$}{\leftarrow} \mathbb{Z}_{p}\)
+**** compute $R = sG + cP$
+**** note this doesn't require knowledge of $x$
+**** therefore an accepting transcript $(R, c, s)$ contains no information about $x$
+** Completeness
+*** An accepting transcript exists for every $P$
+* Schnorr Signatures = Schnorr Identification + Fiat Shamir
+** Fiat-Shamir heuristic, [[https://www.academia.edu/download/83098393/3-540-47721-7_12.pdf][1986]]
+*** Using a hash function, the prover can challenge itself
+*** $c = H(R)$
+*** better yet, use "strong" variant, $c = H(P, R)$ due to [[https://eprint.iacr.org/2016/771.pdf][some pitfalls]]
+** This transforms Schnorr identification into a non-interactive protocol
+** By adding a message $m$ to the hashed data the prover can "sign" $m$
+* Generalizing Schnorr Identification
+** Notation: $\{ (x; P) : P = xG \}$
+*** $x$ is a private input
+*** $P$ is a public input
+*** $P = xG$ is the statement being proven, $G$ is part of the statement
+** DLEQ (Chaum-Pedersen): $\{ (x; P, Q) : P = xG \wedge Q = xH \}$
+*** two (or more) verification equations, one $R$ point per equation
+*** one witness term
+** Opening of commitment (Okamoto): $\{ (x, r; C) : C = xG + rH \}$
+*** two (or more) witness terms, each with its own $R$ point
+*** one verification equation
+*** proves knowledge of opening of a Pedersen commitment
+* Generalizing Schnorr Identification
+** General linear relation (folk)
+\begin{align}
+\{ ( w_1, \dots, w_n &; P_1, \dots, P_m ) : \\
+P_1 &= w_1 G_{1,1} + \dots \w_n G_{1,n} \quad \wedge \\
+&\dots \\
+P_m &= w_1 G_{m,1} + \dots + w_n G_{m,n} \}
+\end{align}
+*** $n$ witness terms
+*** $m$ verification equations
+*** $n \cdot m$ possible generators, each with an $R$ point
+** MuSig2 or FROST for general linear relations?
+*** yeah totally!
+*** well, apart from those pesky proofs of security ;_;
+* Generalizing Schnorr Identification
+** Disjunctions? Yes!
+*** $\{ (x; P, Q) : P = xG \vee Q = xG \}$
+*** "witness indistinguishable", 1-of-n proofs
+*** Abe or Cramer-Damgard ring signatures
+**** simulate for $n-1$ of the statements
+**** one of the statements can't be simulated, verifier doesn't know which
+** Prove a commitment is a bit commitment? Yes!
+*** with OR proofs: $\{ (r;C): C = rH \vee (C-G) = rH \}$
+*** without:
+**** $x^2 = x \iff x \in \{ 0, 1 \} \iff x(x-1) = 0$
+**** $\{ (x, r, z; C, C'): C = xG + rH \wedge C' = x(C-G) + zH \}$
+** Range proofs? Yes!
+*** prove A$(C_i)_{i=1}^{log(v)}$ are bit commitments
+*** $C_v = \sum_{i=1}^{log(v)} 2^i C_i$
+*** intuition: scaled bit commitments = denominations
+*** zero knowledge hides which denominations are used
+** Arithmetic circuits? Yes!
+*** multiplication gates can be linearized similar to the polynomial trick
+** Logarithmic proof size? Yes!
+*** Folding (e.g. [[https://eprint.iacr.org/2017/1066.pdf][Bulletproofs]])
+* Generalizing Schnorr Identification
+** see https://cryptobook.us/
+** so wait why do we even need zkSNARKs, zkSTARKs etc?
+*** Succinct, Non-interactive ARguments of Knowledge
+*** Succinctness means $O(1)$ proof size
+*** and much more efficient verification
+* Blind DH e-cash
+** Lightweight alternative to blind signatures
+*** smaller
+*** more efficient to compute than Schnorr blind signatures, much more than RSA
+*** not susceptible to ROS attack
+*** still requires multiple keys, one for each denomination
+** [[https://gist.github.com/RubenSomsen/be7a4760dd4596d06963d67baf140406][Naive protocol]]
+*** tokens not publicly verifiable
+*** that's OK since only Bob needs to verify for redemption
+*** but how to prevent key tagging?
+*** DLEQs to the rescue
+** c.f. Privacy Pass
+*** main difference: additive vs. multiplicative blinding
+*** IETF protocol, uses NIST P-256 curve (compromised?)
+*** publicly verifiable variant uses blind RSA
+*** [[https://privacypass.github.io/protocol/][fantastic introductory documentation]]
+* Wait weren't we trying to hide denominations?
+** A signature scheme for group elements?
+** recall predicate signatures are costly due to "regular" hashing
+** what if the message space was $\mathbb{G}$?
+* Algebraic MACs
+** MAC: message authentication code
+*** similar to signatures
+*** but not publicly verifiable
+** Algebraic MAC
+*** a MAC built using just group operation
+*** (SHA-256 : Pedersen Hash) :: (HMAC : AMAC)
+* Signal Credential Scheme
+** [[https://eprint.iacr.org/2019/1416.pdf][Keyed verification anonymous credentials]]
+** Setup
+*** \((w, w', x_0, x_1, y) \overset{\$}{\leftarrow} {\mathbb{Z}_{p}}^{5}\)
+*** Publish issuer params (public key analogue)
+** AMAC request (simplified)
+*** given a message is $M \in \mathbb{G}$
+*** \(t \overset{\$}{\leftarrow} \mathbb{Z}_{p}\)
+*** $U = \operatorname{HashTo\mathbb{G}}(t)$
+*** $V = wG_w + (x_0 + x_1 t)U + yM$
+*** output $(t, V)$
+** Credential issuance
+*** credential requests can easily prove things about $M$
+**** if $M$ is a Pedersen commitment, Sigma protocols are efficient
+*** AMAC and a key-tagging prevention proof
+** Credential presentation
+*** instead of revealing the AMAC, prove you have one
+*** issuer needs to provide part of the secret key to verify
+* WabiSabi
+** Signal Credential Scheme + homomorphic value commitments
+** in CT, txs self authenticate
+** KVACs replace chain of signatures with a centralized validator
+** balance proofs, range proofs more or less the same
+** nullifiers are key images (DLEQ of randomness in Pedersen commitment)
+* WabiSabi
+** What is it for?
+*** issue to TxIns with ownership proofs
+*** "spend" to add TxOuts claiming input values
+*** ensures TxOut addition is honest
+** assuming incentive compatibility, everyone should sign
+*** unfortunately deployed WabiSabi not incentive compatible
+*** "fortunately" yolo client DGAF, didn't even enforce coordinator fees =P
+* [[https://eprint.iacr.org/2012/298.pdf][Anonymous Credentials Light]]
+** publicly verifiable, structured messages on DL assumptions
+** [[https://orbilu.uni.lu/bitstream/10993/46294/1/%5B22990984%20-%20Proceedings%20on%20Privacy%20Enhancing%20Technologies%5D%20Black-Box%20Wallets%20Fast%20Anonymous%20Two-Way%20Payments%20for%20Constrained%20Devices.pdf][Black-Box Wallets]] = ACL + homomorphic value commitments
+*** Designed for e.g. public transit payments
+** Previously thought to be vulnerable to ROS attack, [[https://dl.acm.org/doi/pdf/10.1145/3576915.3623184][but actually OK]]
+* Coconut Credentials
+** Threshold issuance, publicly verifiable
+** Requires pairings based crypto (based on Pointcheval-Sanders signatures)
+** [[https://github.com/joschisan/ecash-ng-crypto][Fedimint PoC]] by joschisan
+* [[https://arxiv.org/pdf/2003.11506][fastpay]] & [[https://arxiv.org/pdf/2201.05671][zef]]
+** Account model, based on on Coconut credentials
+** clever architecture avoids needing global consensus
+*** [[https://github.com/novifinancial/fastpay/pull/25][zef PR]] on [[https://github.com/novifinancial/fastpay/][fastpay repo]]
+*** [[https://arxiv.org/pdf/2405.18072][Asynchronous BFT Asset Transfer: Quasi-Anonymous, Light, and Consensus-Free]]
+* Ring Signatures
+** yeah the talk title...
+** Anonymous credentials rely on an issuer
+*** ring signatures explicitly refer to the 1-of-n set
+**** larger proofs
+**** dependence on state
+**** but also ensures the set is non-trivial
+*** unlinkability is implicit
+** But if clients know the set of coins, 1-of-n proofs will do
+** [[https://www.usenix.org/system/files/usenixsecurity23-campanelli.pdf][curve trees]] state of the art under DL assumptions?
+*** see also [[https://github.com/AdamISZ/aut-ct][Adam Gibson's implementation]] based on sec{p,q}256k1
+** c.f. [[https://lelantus.io/lelantus.pdf][Lelantus]], [[https://www.getmonero.org/2024/04/27/fcmps.html][Monero FCMP]], [[https://zcash.github.io/orchard/][ZCash Orchard]], [[https://eprint.iacr.org/2022/1104.pdf][\(\mu\)cash]] ...
+* Divisible e-cash
+** [[https://eprint.iacr.org/2014/785.pdf][several]] [[https://eprint.iacr.org/2015/300.pdf][papers]] [[https://inria.hal.science/hal-02357173/document][over the years]]
+** efficiently issue a coin worth $2^n$
+** user can efficiently spend parts of the coin independently
+* [[https://eprint.iacr.org/2018/923.pdf][Mercurial Signatures]]
+** what can delegatable anonymous credentials?
+* In conclusion
+** There's more than one way to do it
+** There's many ways it's been done
+** Many properties, many tradeoffs
+*** Publicly verifiability
+*** Threshold issuance
+*** Self issuance
+*** Structured messages
+*** ZK proof friendliness
+* postamble
+
+#+BEGIN_SRC emacs-lisp
+;; based on https://raw.githubusercontent.com/daviwil/emacs-from-scratch/master/show-notes/Emacs-Lisp-02.org
+
+;;; Basic Appearance ---------------------------------------
+
+;; More minimal UI
+(setq inhibit-startup-screen t)
+(menu-bar-mode 0)
+(tool-bar-mode 0)
+(scroll-bar-mode 0)
+
+;; Let the desktop background show through
+(set-frame-parameter (selected-frame) 'alpha '(97 . 100))
+(add-to-list 'default-frame-alist '(alpha . (90 . 90)))
+
+;;; Theme and Fonts ----------------------------------------
+;; NOTE: These settings might not be ideal for your machine, tweak them as needed!
+(set-face-attribute 'default nil :weight 'light :height 180)
+(set-face-attribute 'fixed-pitch nil :weight 'light :height 190)
+(set-face-attribute 'variable-pitch nil :weight 'light :height 1.3)
+
+;;; Org Mode Appearance ------------------------------------
+
+;; Load org-faces to make sure we can set appropriate faces
+(require 'org-faces)
+
+;; Hide emphasis markers on formatted text
+(setq org-hide-emphasis-markers t)
+
+;; Resize Org headings
+(dolist (face '((org-level-1 . 1.6)
+                (org-level-2 . 1.3)
+                (org-level-3 . 1.1)
+                (org-level-4 . 1.0)
+                (org-level-5 . 1.0)
+                (org-level-6 . 1.0)
+                (org-level-7 . 1.0)
+                (org-level-8 . 1.0)))
+  (set-face-attribute (car face) nil :weight 'medium :height (cdr face)))
+
+;; Make the document title a bit bigger
+(set-face-attribute 'org-document-title nil :weight 'bold :height 1.2)
+
+;; Make sure certain org faces use the fixed-pitch face when variable-pitch-mode is on
+(set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+(set-face-attribute 'org-table nil :inherit 'fixed-pitch)
+(set-face-attribute 'org-formula nil :inherit 'fixed-pitch)
+(set-face-attribute 'org-code nil :inherit '(shadow fixed-pitch))
+(set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+(set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+(set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+(set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+
+;;; Centering Org Documents --------------------------------
+
+;; Configure fill width
+(setq visual-fill-column-width 110
+      visual-fill-column-center-text t)
+
+;;; Org Present --------------------------------------------
+
+(defun my/org-present-prepare-slide (buffer-name heading)
+  ;; Show only top-level headlines
+  (org-overview)
+  ;; Unfold the current entry
+  (org-show-entry)
+
+  ;; Show only direct subheadings of the slide but don't expand them
+  (org-show-children))
+
+(defun my/org-present-start ()
+  ;; Tweak font sizes
+  (setq-local face-remapping-alist '((default (:height 1.5) variable-pitch)
+                                     (header-line (:height 4.0) variable-pitch)
+                                     (org-document-title (:height 1.75) org-document-title)
+                                     (org-code (:height 1.55) org-code)
+                                     (org-verbatim (:height 1.55) org-verbatim)
+                                     (org-block (:height 1.25) org-block)
+                                     (org-block-begin-line (:height 0.7) org-block)))
+
+  ;; Set a blank header line string to create blank space at the top
+  (setq header-line-format " ")
+
+  ;; Display inline images automatically
+  (org-display-inline-images)
+
+  ;; and math
+  (setq-local org-format-latex-options (plist-put org-format-latex-options :scale 5.0))
+  (org-latex-preview '(16)) ;; '(16) is "universal argument"
+
+  (setq-local line-spacing 15)
+  (setq-local display-line-numbers nil)
+  (setq-local hl-line-mode nil)
+
+  ;; prevent idiocy
+  (org-present-read-only)
+  (evil-emacs-state)
+
+  ;; Center the presentation and wrap lines
+  (visual-fill-column-mode 1)
+  (visual-line-mode 1))
+
+(defun my/org-present-end ()
+  ;; Reset font customizations
+  (setq-local face-remapping-alist '((default variable-pitch default)))
+
+  ;; Clear the header line string so that it isn't displayed
+  (setq header-line-format nil)
+
+  ;; Stop displaying inline images
+  (org-remove-inline-images)
+
+  ;; Stop centering the document
+  (visual-fill-column-mode 0)
+  (visual-line-mode 0)
+
+  (evil-normal-state))
+
+;; Turn on variable pitch fonts in Org Mode buffers
+(add-hook 'org-mode-hook 'variable-pitch-mode)
+
+;; Register hooks with org-present
+(add-hook 'org-present-mode-hook 'my/org-present-start)
+(add-hook 'org-present-mode-quit-hook 'my/org-present-end)
+(add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
+
+(org-present)
+(org-present-beginning)
+#+END_SRC
