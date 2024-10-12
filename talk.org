@@ -14,6 +14,11 @@
 * What this talk is about
 ** design space for e-cash implementation
 ** some building blocks and their properties
+* Links in slide source
+#+ATTR_ORG: :align center
+#+ATTR_ORG: :width 300px
+[[./slides_link.svg]]
+** https://github.com/nothingmuch/btcpp_berlin24
 * Physical Bearer Tokens
 ** Alice gives Bob the banker one "unit"
 ** Bob gives Alice a note
