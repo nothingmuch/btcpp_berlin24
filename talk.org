@@ -102,7 +102,8 @@
 ** Closure: $\forall A, B \in \mathbb{G}: A + B \in \mathbb{G}$
 ** Identity: $\exists O \in \mathbb{G}: \forall G \in \mathbb{G}: G + O = G$
 ** Inverses: $\forall A \in \mathbb{G}: \exists B \in \mathbb{G}: A + B = O$
-** Associativity: $\forall A, B, C \in \mathbb{G}:  (A + B) + C = A + (B + C)$
+** Associativity:
+$\forall A, B, C \in \mathbb{G}:  (A + B) + C = A + (B + C)$
 * Abelian Groups of Prime Order
 ** Abelian/commutative: $\forall A, B \in \mathbb{G}: A + B = B + A$
 ** $kG$ denotes repeated addition ($k \in \mathbb{Z}$)
@@ -122,9 +123,9 @@
 * Pedersen Hashing
 ** Given some generator $G \in \mathbb{G}$
 *** e.g. the standard one used for ECDSA signatures
-** $h_G(a) \mathrel{\mathop:}= aG$
 ** $h_G : \mathbb{Z}_{p} \rightarrow \mathbb{G}$
-** basically the same as as deriving a public key
+** $h_G(a) \mathrel{\mathop:}= aG$
+** basically the same as deriving a public key
 * Pedersen Commitments
 ** Given $G, H \in \mathbb{G}$
 *** No one knows a $k$ s.t. $H = kG$ or $G = kH$
@@ -144,7 +145,8 @@
 ** numerical values $v_1, v_2 \in \mathbb{Z}_{p}$
 ** Suppose $v_1$ and $v_2$ represent the value of a spent input and created output respectively
 * Confidential Transactions: Balance Proofs
-** homomorphism: $( v_1G \oplus r_1H ) \oplus -(v_2G \oplus r_2H) = (v_1 - v_2)G \oplus (r_1 - r_2)H$
+** homomorphism:
+$( v_1G \oplus r_1H ) \oplus -(v_2G \oplus r_2H) = (v_1 - v_2)G \oplus (r_1 - r_2)H$
 ** if $v_1 = v_2$, the $G$ terms cancel out: $(r_1 - r_2)H$
 ** proving $C$ is a commitment to 0 is like signing with $C$ as a public key
 *** if $H$ is the standard generator used for signatures, it's literally the same
@@ -168,7 +170,7 @@
 **** $(k - cx)G = kG - cxG = R - cP$
 ** $(R, c, s)$ is the /transcript/
 *** An /accepting/ transcript satisfies the verification equation
-* Schnorr Identification is a Sigma Protocols
+* Schnorr Identification is a Sigma Protocol
 ** for given $P = xG$:
 ** Special Soundness
 *** This makes sigma protocols *proofs* of *knowledge*
@@ -205,7 +207,7 @@
 *** one verification equation
 *** proves knowledge of opening of a Pedersen commitment
 * Generalizing Schnorr Identification
-** General linear relation (folk)
+** General linear relation
 \begin{align}
 \{ ( w_1, \dots, w_n &; P_1, \dots, P_m ) : \\
 P_1 &= w_1 G_{1,1} + \dots \w_n G_{1,n} \quad \wedge \\
@@ -231,14 +233,14 @@ P_m &= w_1 G_{m,1} + \dots + w_n G_{m,n} \}
 **** $x^2 = x \iff x \in \{ 0, 1 \} \iff x(x-1) = 0$
 **** $\{ (x, r, z; C, C'): C = xG + rH \wedge C' = x(C-G) + zH \}$
 ** Range proofs? Yes!
-*** prove A$(C_i)_{i=1}^{log(v)}$ are bit commitments
-*** $C_v = \sum_{i=1}^{log(v)} 2^i C_i$
+*** prove $(C_i)_{i=0}^{\operatorname{log}_2(v)}$ are bit commitments
+*** $C_v = \sum_{i=1}^{\operatorname{log}_2(v)} 2^i C_i$
 *** intuition: scaled bit commitments = denominations
 *** zero knowledge hides which denominations are used
 ** Arithmetic circuits? Yes!
 *** multiplication gates can be linearized similar to the polynomial trick
 ** Logarithmic proof size? Yes!
-*** Folding (e.g. [[https://eprint.iacr.org/2017/1066.pdf][Bulletproofs]])
+*** Folding (e.g. [[https://eprint.iacr.org/2017/1066.pdf][Bulletproofs]], compressed \(\Sigma\)-protocols)
 * Generalizing Schnorr Identification
 ** see https://cryptobook.us/
 ** so wait why do we even need zkSNARKs, zkSTARKs etc?
